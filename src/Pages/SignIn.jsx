@@ -1,22 +1,37 @@
-import React, { useState } from "react";
+import React, { useContext, useRef, useState } from "react";
 import MyContainer from "../Components/MyContainer";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { FaEye } from "react-icons/fa";
 import { IoEyeOff } from "react-icons/io5";
-import {
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-} from "firebase/auth";
-import { auth } from "../Firebase/firebase.config";
 import Swal from "sweetalert2";
-
-const googleProvider = new GoogleAuthProvider();
+import { AuthContext } from "../Context/AuthContext";
 
 const SignIn = () => {
-  const [user, setUser] = useState(null);
-  const [show, setShow] = useState();
+  // const [user, setUser] = useState(null);
+  const [show, setShow] = useState(false);
+  const {
+    signInFunction,
+    signInEmailFunction,
+    signInGithubFunction,
+    resetPassword,
+    setUser,
+    setLoading,
+    user,
+  } = useContext(AuthContext);
+
+  const emailRef = useRef();
+  // const [email, setEmail] = useState(null);
+
+  const location = useLocation();
+  const from = location.state  || "/";
+  const navigate = useNavigate();
+  console.log(location);
+
+   if(user){
+    navigate("/")
+    return ;
+    // <Navigate to={"/"}></Navigate>
+  }
 
   const handleSignIn = (event) => {
     event.preventDefault();
@@ -25,8 +40,19 @@ const SignIn = () => {
     console.log("Sign In button Click", email, password);
     console.log("Sign In button Click", { email, password });
 
-    signInWithEmailAndPassword(auth, email, password)
+    // signInWithEmailAndPassword(auth, email, password)
+    signInFunction(email, password)
       .then((result) => {
+        setLoading(false);
+        // if (result.emailVerified == false)
+        if (!result.user.emailVerified) {
+          Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Your email is not verified .",
+          });
+          return;
+        }
         console.log(result);
         setUser(result.user);
         Swal.fire({
@@ -34,6 +60,7 @@ const SignIn = () => {
           icon: "success",
           draggable: true,
         });
+        navigate(from)
       })
       .catch((error) => {
         console.log(error);
@@ -45,35 +72,13 @@ const SignIn = () => {
         });
       });
   };
-  console.log(user);
-
-  const handleSignOut = () => {
-    signOut(auth)
-      .then((result) => {
-        console.log(result);
-        setUser(null);
-        Swal.fire({
-          title: "Sign Out Successful!",
-          icon: "success",
-          draggable: true,
-        });
-      })
-      .catch((error) => {
-        console.log(error);
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: error.message,
-          //   footer: '<a href="#">Why do I have this issue?</a>',
-        });
-      });
-  };
-
   const handleGoogleSignIn = () => {
-    signInWithPopup(auth, googleProvider)
+    signInEmailFunction()
       .then((result) => {
+        setLoading(false);
         console.log(result);
         setUser(result.user);
+        navigate(from)
         Swal.fire({
           title: "Google Sign in Successful!",
           icon: "success",
@@ -90,7 +95,54 @@ const SignIn = () => {
         });
       });
   };
+  const handleGithubSignIn = () => {
+    signInGithubFunction()
+      .then((result) => {
+        setLoading(false);
+        console.log(result);
+        setUser(result.user);
+        navigate(from);
+        Swal.fire({
+          title: "Github Sign in Successful!",
+          icon: "success",
+          draggable: true,
+        });
+      })
+      .catch((error) => {
+        console.log(error);
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: error.message,
+          //   footer: '<a href="#">Why do I have this issue?</a>',
+        });
+      });
+  };
+  const handleForgetPassword = () => {
+    // console.log(emailRef.current.value);
+    const email = emailRef.current.value;
+    // sendPasswordResetEmail(auth, email)
+    resetPassword(email)
+      .then((result) => {
+        setLoading(false);
+        console.log(result);
+        Swal.fire({
+          title: "Check your Email to reset password!",
+          icon: "success",
+          draggable: true,
+        });
+      })
+      .catch((error) => {
+        console.log(error);
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: error.message,
+        });
+      });
+  };
 
+  // console.log(user);
   return (
     <div
       className="min-h-[calc(100vh-20px)] flex items-center justify-center
@@ -120,87 +172,94 @@ const SignIn = () => {
 
           {/* Login card */}
           <div className="w-full max-w-md backdrop-blur-lg bg-white/10 border border-white/20 shadow-2xl rounded-2xl p-8">
-            {user ? (
-              <div className="text-center space-y-5">
-                <img
-                  src={user?.photoURL || "https://via.placeholder.com/88"}
-                  className="h-20 w-20 rounded-full mx-auto"
-                  alt=""
+            <form onSubmit={handleSignIn} className="space-y-5">
+              <h2 className="text-2xl font-semibold mb-2 text-center text-white">
+                Sign In
+              </h2>
+
+              <div>
+                <label className="block text-sm mb-1">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  ref={emailRef}
+                  // value={email}
+                  // onChange={(event) => setEmail(event.target.value)}
+                  placeholder="example@email.com"
+                  className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <h2 className="text-xl font-semibold">{user?.displayName}</h2>
-                <p className="text-white/80">{user?.email}</p>
-                <button onClick={handleSignOut} className="my-btn">
-                  Sign Out
-                </button>
               </div>
-            ) : (
-              <form onSubmit={handleSignIn} className="space-y-5">
-                <h2 className="text-2xl font-semibold mb-2 text-center text-white">
-                  Sign In
-                </h2>
 
-                <div>
-                  <label className="block text-sm mb-1">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="example@email.com"
-                    className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  />
-                </div>
-
-                <div className="relative">
-                  <label className="block text-sm mb-1">Password</label>
-                  <input
-                    type={show ? "text" : "password"}
-                    name="password"
-                    placeholder="••••••••"
-                    className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  />
-                  <span
-                    onClick={() => setShow(!show)}
-                    className="absolute right-[8px] top-[36px] cursor-pointer z-50"
-                  >
-                    {show ? <FaEye /> : <IoEyeOff />}
-                  </span>
-                </div>
-
-                <button type="submit" className="my-btn">
-                  Login
-                </button>
-
-                {/* Divider */}
-                <div className="flex items-center justify-center gap-2 my-2">
-                  <div className="h-px w-16 bg-white/30"></div>
-                  <span className="text-sm text-white/70">or</span>
-                  <div className="h-px w-16 bg-white/30"></div>
-                </div>
-
-                {/* Google Signin */}
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+              <div className="relative">
+                <label className="block text-sm mb-1">Password</label>
+                <input
+                  type={show ? "text" : "password"}
+                  name="password"
+                  placeholder="••••••••"
+                  className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <span
+                  onClick={() => setShow(!show)}
+                  className="absolute right-[8px] top-[36px] cursor-pointer z-50"
                 >
-                  <img
-                    src="https://www.svgrepo.com/show/475656/google-color.svg"
-                    alt="google"
-                    className="w-5 h-5"
-                  />
-                  Continue with Google
-                </button>
+                  {show ? <FaEye /> : <IoEyeOff />}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleForgetPassword}
+                className="hover:underline cursor-pointer"
+              >
+                Forget Password ?
+              </button>
+              <button type="submit" className="my-btn">
+                Login
+              </button>
 
-                <p className="text-center text-sm text-white/80 mt-3">
-                  Don’t have an account?{" "}
-                  <Link
-                    to="/signup"
-                    className="text-pink-300 hover:text-white underline"
-                  >
-                    Sign up
-                  </Link>
-                </p>
-              </form>
-            )}
+              {/* Divider */}
+              <div className="flex items-center justify-center gap-2 my-2">
+                <div className="h-px w-16 bg-white/30"></div>
+                <span className="text-sm text-white/70">or</span>
+                <div className="h-px w-16 bg-white/30"></div>
+              </div>
+
+              {/* Google Signin */}
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="google"
+                  className="w-5 h-5"
+                />
+                Continue with Google
+              </button>
+              {/* Github Signin */}
+              <button
+                type="button"
+                onClick={handleGithubSignIn}
+                className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <img
+                  className="w-7 h-7"
+                  src="https://img.icons8.com/material-sharp/24/github.png"
+                  alt="github"
+                />
+                Continue with Github
+              </button>
+
+              <p className="text-center text-sm text-white/80 mt-3">
+                Don’t have an account?{" "}
+                <Link
+                  to="/signup"
+                  className="text-pink-300 hover:text-white underline"
+                >
+                  Sign up
+                </Link>
+              </p>
+            </form>
           </div>
         </div>
       </MyContainer>

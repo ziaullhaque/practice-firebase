@@ -1,22 +1,49 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import MyContainer from "../Components/MyContainer";
-import { Link } from "react-router";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../Firebase/firebase.config";
+import { Link, useNavigate } from "react-router";
+import // createUserWithEmailAndPassword,
+// sendEmailVerification,
+// updateProfile,
+"firebase/auth";
+// import { auth } from "../Firebase/firebase.config";
 // import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import { FaEye } from "react-icons/fa";
 import { IoEyeOff } from "react-icons/io5";
+import { AuthContext } from "../Context/AuthContext";
 
 const SignUp = () => {
-  const [show, setShow] = useState();
+  const [show, setShow] = useState(false);
+  const {
+    createUserFunction,
+    emailVerificationFunction,
+    updateProfileFunction,
+    setLoading,
+    logOut,
+    setUser,
+  } = useContext(AuthContext);
+
+  const navigate = useNavigate();
 
   const handleSignUp = (event) => {
     event.preventDefault();
+    const displayName = event.target.name?.value;
+    const photoURL = event.target.photo?.value;
     const email = event.target.email?.value;
     const password = event.target.password?.value;
-    console.log("Sign Up  Function Entered", email, password);
-    console.log("Sign Up  Function Entered", { email, password });
+    console.log(
+      "Sign Up  Function Entered",
+      displayName,
+      photoURL,
+      email,
+      password
+    );
+    console.log("Sign Up  Function Entered", {
+      displayName,
+      photoURL,
+      email,
+      password,
+    });
 
     // if (password.length < 6) {
     //   toast.error("Password Should be at least 6 digit");
@@ -37,16 +64,48 @@ const SignUp = () => {
       //   );
       return;
     }
-
-    createUserWithEmailAndPassword(auth, email, password)
+    // step 1 : create user
+    // createUserWithEmailAndPassword(auth, email, password)
+    createUserFunction(email, password)
       .then((result) => {
-        console.log(result);
-        Swal.fire({
-          title: "Sign Up Successful!",
-          icon: "success",
-          draggable: true,
-        });
-        // toast.success("Sign Up Successful");
+        // step 2 : update profile
+        // updateProfile(result.user,
+        updateProfileFunction(displayName, photoURL)
+          .then(() => {
+            console.log(result);
+            // step 3 : email verification
+            // sendEmailVerification(result.user)
+            emailVerificationFunction()
+              .then(() => {
+                setLoading(false);
+                // logout user
+                logOut().then(() => {
+                  Swal.fire({
+                    title: `Sign Up Successful! 
+                    Check your email validate your Account`,
+                    icon: "success",
+                    draggable: true,
+                  });
+                  setUser(null);
+                  navigate("/signin");
+                });
+                // toast.success("Sign Up Successful");
+              })
+              .catch((error) => {
+                Swal.fire({
+                  icon: "error",
+                  title: "User Already Exists",
+                  text: error.message,
+                });
+              });
+          })
+          .catch((error) => {
+            Swal.fire({
+              icon: "error",
+              title: "User Already Exists",
+              text: error.message,
+            });
+          });
       })
       .catch((error) => {
         console.log("Firebase Error:", error);
@@ -128,13 +187,30 @@ const SignUp = () => {
               begins here!
             </p>
           </div>
-
           <div className="w-full max-w-md backdrop-blur-lg bg-white/10 border border-white/20 shadow-2xl rounded-2xl p-8">
             <h2 className="text-2xl font-semibold mb-6 text-center text-white">
               Sign Up
             </h2>
 
             <form onSubmit={handleSignUp} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Name"
+                  className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Photo</label>
+                <input
+                  type="text"
+                  name="photo"
+                  placeholder="PhotoURL"
+                  className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
                 <input
@@ -144,7 +220,6 @@ const SignUp = () => {
                   className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400"
                 />
               </div>
-
               <div className="relative">
                 <label className="block text-sm font-medium mb-1">
                   Password
@@ -162,11 +237,9 @@ const SignUp = () => {
                   {show ? <FaEye /> : <IoEyeOff />}
                 </span>
               </div>
-
               <button type="submit" className="my-btn">
                 Sign Up
               </button>
-
               <div className="text-center mt-3">
                 <p className="text-sm text-white/80">
                   Already have an account?{" "}

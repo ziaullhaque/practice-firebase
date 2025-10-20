@@ -7,6 +7,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ## Demo
+
 [Live Demo](https://practicefirebase.netlify.app/)
 
 ---
@@ -16,12 +17,6 @@
 **Practice Firebase** is a React-based web application designed to help developers learn and implement Firebase Authentication and other Firebase services.  
 It features a modern dark-themed UI with TailwindCSS, animated effects, and responsive design.  
 Users can sign up with email and password, and proper error handling is implemented using **SweetAlert2** and **React Toastify**.
-
----
-
-## Screenshot
-
-![App Screenshot](./screenshot.png) <!-- Add your screenshot file in the project root -->
 
 ---
 
@@ -54,3 +49,4 @@ Users can sign up with email and password, and proper error handling is implemen
 
 ```bash
 git clone https://github.com/ziaullhaque/practice-firebase.git
+```
